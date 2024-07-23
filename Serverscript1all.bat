@@ -34,7 +34,7 @@ set /p answer=Have you set password complexity rec and disabled revearse encrypt
 	echo "1)Set user properties 	2)Disable guest"
 	echo "3)Set password policy 	4)Set lockout policy"
 	echo "5)Enable Firewall		6)Windows Services"
-	echo "7)Enable auto update 	8)Turn on UAC""
+	echo "7)Enable auto update 	8)Turn on UAC"
 	echo "9)Security options	10)Audit the machine"
 	echo "11)Exit"
 	echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
