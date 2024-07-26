@@ -104,23 +104,21 @@ pause
 goto :menu
 	
 :firewall
-rem Enables firewall
-	netsh advfirewall set allprofiles state on
+rem Enables firewall and disables msedge rule with consolidated error handling
+netsh advfirewall set allprofiles state on >nul 2>&1
 if %errorlevel% neq 0 (
     echo Failed to enable firewall on all profiles.
+) else (
+    netsh advfirewall firewall set rule name="msedge" new enable=no >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo Failed to disable the msedge firewall rule.
+    ) else (
+        echo Firewall is now enabled and msedge rule disabled.
+    )
+)
 pause
 goto :menu
-)
 
-netsh advfirewall firewall set rule name="msedge" new enable=no
-if %errorlevel% neq 0 (
-    echo Failed to disable the msedge firewall rule.
-pause
-goto :menu
-)
-echo Firewall is now enabled.
-pause
-goto :menu
 
 :services
 
@@ -129,11 +127,23 @@ set services=TlntSvr ftpsvc msftpsvc upnphost SNMPtrap SharedAccess SSDPSRV Remo
 
 rem Loop through each service and disable it
 for %%S in (!services!) do (
-    sc stop %%S
-    if %errorlevel% neq 0 (
-        echo Failed to stop %%S service.
+    echo Attempting to stop %%S service...
+    sc query %%S | findstr /i "STATE" | findstr /i "RUNNING" >nul 2>&1
+    if %errorlevel% equ 0 (
+        sc stop %%S >nul 2>&1
+        if %errorlevel% neq 0 (
+            echo Failed to stop %%S service.
+        ) else (
+            sc config %%S start= disabled >nul 2>&1
+            if %errorlevel% neq 0 (
+                echo Failed to disable %%S service.
+            ) else (
+                echo %%S service has been disabled.
+            )
+        )
     ) else (
-        sc config %%S start= disabled
+        echo %%S service is not running. Attempting to disable...
+        sc config %%S start= disabled >nul 2>&1
         if %errorlevel% neq 0 (
             echo Failed to disable %%S service.
         ) else (
@@ -141,6 +151,22 @@ for %%S in (!services!) do (
         )
     )
 )
+
+rem Enable Wecsvc service
+sc start Wecsvc
+if %errorlevel% neq 0 (
+    echo Failed to start Wecsvc service.
+) else (
+    sc config Wecsvc start= auto
+    if %errorlevel% neq 0 (
+        echo Failed to set Wecsvc service to auto start.
+    ) else (
+        echo Wecsvc service has been set to auto start.
+    )
+)
+pause
+goto :menu
+
 rem Enable Wecsvc service
 sc start Wecsvc
 if %errorlevel% neq 0 (
@@ -190,43 +216,43 @@ goto :menu
 :secopt
 echo Changing security options now.
 	rem Limit local account use of blank passwords to console
-	reg ADD HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v LimitBlankPasswordUse /t REG_DWORD /d 1 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v LimitBlankPasswordUse /t REG_DWORD /d 1 /f
 
     rem Restrict CD ROM drive
-	reg ADD HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon /v AllocateCDRoms /t REG_DWORD /d 1 /f
+	reg add HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon /v AllocateCDRoms /t REG_DWORD /d 1 /f
 
 	rem Disallow remote access to floppie disks (drives/folders)
-	reg ADD HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon /v AllocateFloppies /t REG_DWORD /d 1 /f
+	reg add HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon /v AllocateFloppies /t REG_DWORD /d 1 /f
 
     rem Auditing access of Global System Objects
-	reg ADD HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v auditbaseobjects /t REG_DWORD /d 1 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v auditbaseobjects /t REG_DWORD /d 1 /f
 
 	rem Auditing Backup and Restore
-	reg ADD HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v fullprivilegeauditing /t REG_DWORD /d 1 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v fullprivilegeauditing /t REG_DWORD /d 1 /f
 
 	rem Disable Undock without logon
-	reg ADD HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v undockwithoutlogon /t REG_DWORD /d 0 /f
+	reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v undockwithoutlogon /t REG_DWORD /d 0 /f
 
     rem Prevent users from print driver installs
-	reg ADD HKLM\SYSTEM\CurrentControlSet\Control\Print\Providers\LanMan Print Services\Servers /v AddPrinterDrivers /t REG_DWORD /d 1 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\Control\Print\Providers\LanMan Print Services\Servers /v AddPrinterDrivers /t REG_DWORD /d 1 /f
 
     rem Disable machine account password changes
-	reg ADD HKLM\SYSTEM\CurrentControlSet\services\Netlogon\Parameters /v DisablePasswordChange /t REG_DWORD /d 1 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\services\Netlogon\Parameters /v DisablePasswordChange /t REG_DWORD /d 1 /f
 
     rem Maximum Machine Password Age
-	reg ADD HKLM\SYSTEM\CurrentControlSet\services\Netlogon\Parameters /v MaximumPasswordAge /t REG_DWORD /d 30 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\services\Netlogon\Parameters /v MaximumPasswordAge /t REG_DWORD /d 30 /f
 
     rem Require Strong Session Key
-	reg ADD HKLM\SYSTEM\CurrentControlSet\services\Netlogon\Parameters /v RequireStrongKey /t REG_DWORD /d 1 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\services\Netlogon\Parameters /v RequireStrongKey /t REG_DWORD /d 1 /f
 
     rem Do not display last user on logon
-	reg ADD HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v dontdisplaylastusername /t REG_DWORD /d 1 /f
+	reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v dontdisplaylastusername /t REG_DWORD /d 1 /f
 
     rem Don't require CTRL+ALT+DEL even though it serves no purpose
-	reg ADD HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v DisableCAD /t REG_DWORD /d 0 /f
+	reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v DisableCAD /t REG_DWORD /d 0 /f
 
 	rem Disable Domain Credential for local security
-	reg ADD HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v disabledomaincreds /t REG_DWORD /d 1 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v disabledomaincreds /t REG_DWORD /d 1 /f
 
     rem Require Security Signature Server
     reg add HKLM\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters /v RequireSecuritySignature /t REG_DWORD /d 1 /f
@@ -235,59 +261,59 @@ echo Changing security options now.
     reg add HKLM\SYSTEM\CurrentControlSet\Services\LanManServer\Parameters /v EnableSecuritySignature /t REG_DWORD /d 1 /f
 
 	rem Require Security Signature Client
-	reg ADD HKLM\SYSTEM\CurrentControlSet\Services\LanManWorkstation\Parameters /v RequireSecuritySignature /t REG_DWORD /d 1 /f 
+	reg add HKLM\SYSTEM\CurrentControlSet\Services\LanManWorkstation\Parameters /v RequireSecuritySignature /t REG_DWORD /d 1 /f 
 	
 	rem Enable Security Signature Client
     reg add HKLM\SYSTEM\CurrentControlSet\Services\LanManWorkstation\Parameters /v EnableSecuritySignature /t REG_DWORD /d 1 /f
 
 	rem Require Sign/Seal
-	reg ADD HKLM\SYSTEM\CurrentControlSet\services\Netlogon\Parameters /v RequireSignOrSeal /t REG_DWORD /d 1 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\services\Netlogon\Parameters /v RequireSignOrSeal /t REG_DWORD /d 1 /f
 	
 	rem Sign Channel
-	reg ADD HKLM\SYSTEM\CurrentControlSet\services\Netlogon\Parameters /v SignSecureChannel /t REG_DWORD /d 1 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\services\Netlogon\Parameters /v SignSecureChannel /t REG_DWORD /d 1 /f
 	
 	rem Seal Channel
-	reg ADD HKLM\SYSTEM\CurrentControlSet\services\Netlogon\Parameters /v SealSecureChannel /t REG_DWORD /d 1 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\services\Netlogon\Parameters /v SealSecureChannel /t REG_DWORD /d 1 /f
 
     rem Disable SMB Passwords unencrypted to third party
-	reg ADD HKLM\SYSTEM\CurrentControlSet\services\LanmanWorkstation\Parameters /v EnablePlainTextPassword /t REG_DWORD /d 0 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\services\LanmanWorkstation\Parameters /v EnablePlainTextPassword /t REG_DWORD /d 0 /f
 
     rem Idle Time Limit - 15 mins
-	reg ADD HKLM\SYSTEM\CurrentControlSet\services\LanmanServer\Parameters /v autodisconnect /t REG_DWORD /d 15 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\services\LanmanServer\Parameters /v autodisconnect /t REG_DWORD /d 15 /f
 
     rem Restrict Anonymous Enumeration SAM #1
-	reg ADD HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v restrictanonymous /t REG_DWORD /d 1 /f 
+	reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v restrictanonymous /t REG_DWORD /d 1 /f 
 	
 	rem Restrict Anonymous Enumeration SAM#2
-	reg ADD HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v restrictanonymoussam /t REG_DWORD /d 1 /f 
+	reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v restrictanonymoussam /t REG_DWORD /d 1 /f 
 
     rem Don't Give Anons Everyone Permissions
-	reg ADD HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v everyoneincludesanonymous /t REG_DWORD /d 0 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v everyoneincludesanonymous /t REG_DWORD /d 0 /f
 
     rem Remotely accessible registry paths cleared
-	reg ADD HKLM\SYSTEM\CurrentControlSet\Control\SecurePipeServers\winreg\AllowedExactPaths /v Machine /t REG_MULTI_SZ /d "" /f
+	reg add HKLM\SYSTEM\CurrentControlSet\Control\SecurePipeServers\winreg\AllowedExactPaths /v Machine /t REG_MULTI_SZ /d "" /f
 	
 	rem Remotely accessible registry paths and sub-paths cleared
-	reg ADD HKLM\SYSTEM\CurrentControlSet\Control\SecurePipeServers\winreg\AllowedPaths /v Machine /t REG_MULTI_SZ /d "" /f
+	reg add HKLM\SYSTEM\CurrentControlSet\Control\SecurePipeServers\winreg\AllowedPaths /v Machine /t REG_MULTI_SZ /d "" /f
 
     rem Restict anonymous access to named pipes and shares blank
-	reg ADD HKLM\SYSTEM\CurrentControlSet\services\LanmanServer\Parameters /v NullSessionShares /t REG_MULTI_SZ /d "" /f
+	reg add HKLM\SYSTEM\CurrentControlSet\services\LanmanServer\Parameters /v NullSessionShares /t REG_MULTI_SZ /d "" /f
     reg ADD HKLM\SYSTEM\CurrentControlSet\services\LanmanServer\Parameters /v NullSessionPipes /t REG_MULTI_SZ /d "" /f
 
     rem Allow to use Machine ID for NTLM enabled
-	reg ADD HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v UseMachineId /t REG_DWORD /d 0 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v UseMachineId /t REG_DWORD /d 0 /f
 
 	rem Automatic Admin logon disabled
-	reg ADD HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon /v AutoAdminLogon /t REG_DWORD /d 0 /f
+	reg add HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon /v AutoAdminLogon /t REG_DWORD /d 0 /f
 
     rem Disable virtual memory page file
-    reg ADD HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management /v PagingFiles /t REG_MULTI_SZ /d "" /f
+    reg add HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management /v PagingFiles /t REG_MULTI_SZ /d "" /f
 
     rem Enable Installer Detection
-    reg ADD HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v EnableInstallerDetection /t REG_DWORD /d 1 /f
+    reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v EnableInstallerDetection /t REG_DWORD /d 1 /f
 
     rem UAC- Switch to secure desktop when prompt for elevation
-	reg ADD HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v PromptOnSecureDesktop /t REG_DWORD /d 1 /f
+	reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v PromptOnSecureDesktop /t REG_DWORD /d 1 /f
 
     rem Enables DEP
     bcdedit.exe /set {current} nx AlwaysOn
@@ -296,8 +322,13 @@ goto :menu
 	
 :audit
 	echo Auditing the maching now
-	auditpol /set /category:* /success:enable
-	auditpol /set /category:* /failure:enable
+auditpol /set /category:* /success:enable /failure:enable
+if %errorlevel% neq 0 (
+    echo Failed to set audit policy.
+) else (
+    echo Audit policy set successfully for all categories.
+)
+
 pause
 goto :menu
 
