@@ -33,10 +33,10 @@ set /p answer=Have you set password complexity rec and disabled revearse encrypt
 	cls
 	echo "1)Set user properties 	2)Disable guest "
 	echo "3)Set password policy 	4)Set lockout policy"
-	echo "5)Enable Firewall 		6)Disable services"
-	echo "7)Turn on UAC				8)Remote Desktop Config"
-	echo "9)Enable auto update		10)Security options"
-	echo "11)Audit the machine		12)Edit groups"
+	echo "5)Enable Firewall 	6)Disable services"
+	echo "7)Turn on UAC		8)Remote Desktop Config"
+	echo "9)Enable auto update	10)Security options"
+	echo "11)Audit the machine	12)Edit groups"
 	echo "0)Exit"
 	echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	set /p answer= Please choose an option: 
