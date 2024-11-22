@@ -204,7 +204,7 @@ goto :menu
 
 :autoUpdate
 rem Turn on automatic updates
-reg add HKLM\SOFTWARE\Microsoft\WINDOWS\CurrentVersion\WindowsUpdate\Auto Update /v AUOptions /t REG_DWORD /d 4 /f
+reg add HKLM\SOFTWARE\Microsoft\WINDOWS\CurrentVersion\WindowsUpdate\AutoUpdate /v AUOptions /t REG_DWORD /d 4 /f
 if %errorlevel% neq 0 (
     echo Failed to turn on automatic updates.
 ) else (
@@ -219,10 +219,10 @@ echo Changing security options now.
 	reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v LimitBlankPasswordUse /t REG_DWORD /d 1 /f
 
     rem Restrict CD ROM drive
-	reg add HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon /v AllocateCDRoms /t REG_DWORD /d 1 /f
+	reg add HKLM\SOFTWARE\Microsoft\WindowsNT\CurrentVersion\Winlogon /v AllocateCDRoms /t REG_DWORD /d 1 /f
 
 	rem Disallow remote access to floppie disks (drives/folders)
-	reg add HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon /v AllocateFloppies /t REG_DWORD /d 1 /f
+	reg add HKLM\SOFTWARE\Microsoft\WindowsNT\CurrentVersion\Winlogon /v AllocateFloppies /t REG_DWORD /d 1 /f
 
     rem Auditing access of Global System Objects
 	reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v auditbaseobjects /t REG_DWORD /d 1 /f
@@ -304,10 +304,10 @@ echo Changing security options now.
 	reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v UseMachineId /t REG_DWORD /d 0 /f
 
 	rem Automatic Admin logon disabled
-	reg add HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon /v AutoAdminLogon /t REG_DWORD /d 0 /f
+	reg add HKLM\SOFTWARE\Microsoft\WindowsNT\CurrentVersion\Winlogon /v AutoAdminLogon /t REG_DWORD /d 0 /f
 
     rem Disable virtual memory page file
-    reg add HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management /v PagingFiles /t REG_MULTI_SZ /d "" /f
+    reg add HKLM\SYSTEM\CurrentControlSet\Control\SessionManager\Memory Management /v PagingFiles /t REG_MULTI_SZ /d "" /f
 
     rem Enable Installer Detection
     reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v EnableInstallerDetection /t REG_DWORD /d 1 /f
