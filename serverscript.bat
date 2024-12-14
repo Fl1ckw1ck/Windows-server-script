@@ -8,8 +8,8 @@ if %errorlevel%==0 (
 	pause
     exit
 )
-cls
 
+cls
 set /p answer=Have you answered all the forensics questions?[y/n]: 
 	if /I {%answer%}=={y} (
 		goto :password
@@ -33,10 +33,10 @@ set /p answer=Have you set password complexity rec and disabled revearse encrypt
 	cls
 	echo "1)Set user properties 	2)Disable guest "
 	echo "3)Set password policy 	4)Set lockout policy"
-	echo "5)Enable Firewall 	6)Disable services"
-	echo "7)Turn on UAC		8)Remote Desktop Config"
-	echo "9)Enable auto update	10)Security options"
-	echo "11)Audit the machine	12)Edit groups"
+	echo "5)Enable Firewall 		6)Disable services"
+	echo "7)Turn on UAC				8)"
+	echo "9)Enable auto update		10)Security options"
+	echo "11)Audit the machine		"
 	echo "0)Exit"
 	echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	set /p answer= Please choose an option: 
@@ -51,7 +51,6 @@ set /p answer=Have you set password complexity rec and disabled revearse encrypt
 		if "%answer%"=="9" goto :autoUpdate
 		if "%answer%"=="10" goto :secopt
 		if "%answer%"=="11" goto :audit
-		if "%answer%"=="12" goto :group
 		if "%answer%"=="0" exit
 	rem turn on screensaver
 pause
@@ -143,29 +142,14 @@ for %%S in (!services!) do (
         )
     ) else (
         echo %%S service is not running. Attempting to disable...
-        sc config %%S start= disabled >nul 2>&1
-        if %errorlevel% neq 0 (
+        sc config %%S start= disabled > nul 2>&1
+        if "%errorlevel%" neq "0" (
             echo Failed to disable %%S service.
         ) else (
             echo %%S service has been disabled.
         )
     )
 )
-
-rem Enable Wecsvc service
-sc start Wecsvc
-if %errorlevel% neq 0 (
-    echo Failed to start Wecsvc service.
-) else (
-    sc config Wecsvc start= auto
-    if %errorlevel% neq 0 (
-        echo Failed to set Wecsvc service to auto start.
-    ) else (
-        echo Wecsvc service has been set to auto start.
-    )
-)
-pause
-goto :menu
 
 rem Enable Wecsvc service
 sc start Wecsvc
@@ -234,7 +218,7 @@ echo Changing security options now.
 	reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v undockwithoutlogon /t REG_DWORD /d 0 /f
 
     rem Prevent users from print driver installs
-	reg add HKLM\SYSTEM\CurrentControlSet\Control\Print\Providers\LanMan Print Services\Servers /v AddPrinterDrivers /t REG_DWORD /d 1 /f
+	reg add HKLM\SYSTEM\CurrentControlSet\Control\Print\Providers\LanMan print Services\Servers /v AddPrinterDrivers /t REG_DWORD /d 1 /f
 
     rem Disable machine account password changes
 	reg add HKLM\SYSTEM\CurrentControlSet\services\Netlogon\Parameters /v DisablePasswordChange /t REG_DWORD /d 1 /f
@@ -307,7 +291,7 @@ echo Changing security options now.
 	reg add HKLM\SOFTWARE\Microsoft\WindowsNT\CurrentVersion\Winlogon /v AutoAdminLogon /t REG_DWORD /d 0 /f
 
     rem Disable virtual memory page file
-    reg add HKLM\SYSTEM\CurrentControlSet\Control\SessionManager\Memory Management /v PagingFiles /t REG_MULTI_SZ /d "" /f
+    reg add HKLM\SYSTEM\CurrentControlSet\Control\SessionManager\MemoryManagement /v PagingFiles /t REG_MULTI_SZ /d "" /f
 
     rem Enable Installer Detection
     reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v EnableInstallerDetection /t REG_DWORD /d 1 /f
@@ -322,7 +306,7 @@ goto :menu
 	
 :audit
 	echo Auditing the maching now
-auditpol /set /category:* /success:enable /failure:enable
+auditpol.exe /set /category:* /success:enable /failure:enable
 if %errorlevel% neq 0 (
     echo Failed to set audit policy.
 ) else (
@@ -332,31 +316,4 @@ if %errorlevel% neq 0 (
 pause
 goto :menu
 
-:group
-	cls
-	net localgroup
-	set /p grp=What group would you like to check?:
-	net localgroup !grp!
-	set /p answer=Is there a user you would like to add or remove?[add/remove/back]:
-	if "%answer%"=="add" (
-		set /p userAdd=Please enter the user you would like to add: 
-		net localgroup !grp! !userAdd! /add
-		echo !userAdd! has been added to !grp!
-	)
-	if "%answer%"=="remove" (
-		set /p userRem=Please enter the user you would like to remove:
-		net localgroup !grp! !userRem! /delete
-		echo !userRem! has been removed from !grp!
-	)
-	if "%answer%"=="back" (
-		goto :group
-	)
-
-	set /p answer=Would you like to go check again?[y/n]
-	if /I "%answer%"=="y" (
-		goto :group
-	)
-	if /I "%answer%"=="n" (
-		goto :menu
-	)
 endlocal
